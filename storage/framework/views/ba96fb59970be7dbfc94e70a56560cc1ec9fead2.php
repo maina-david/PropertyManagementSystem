@@ -1,0 +1,1 @@
+<?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/app/crm/deals/pipelines/stages/index.blade.php ENDPATH**/ ?>

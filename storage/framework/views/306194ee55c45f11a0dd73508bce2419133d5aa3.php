@@ -1,0 +1,1 @@
+<?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/app/hr/leave/settings/workdays.blade.php ENDPATH**/ ?>

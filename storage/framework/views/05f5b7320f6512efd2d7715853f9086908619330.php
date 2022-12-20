@@ -1,0 +1,1 @@
+<?php echo $__env->yieldContent('tips'); ?><?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/partials/_howitworks.blade.php ENDPATH**/ ?>

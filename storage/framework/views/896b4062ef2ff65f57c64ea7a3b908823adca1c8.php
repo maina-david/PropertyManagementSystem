@@ -1,0 +1,1 @@
+<?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/app/property/accounting/creditnote/mail.blade.php ENDPATH**/ ?>

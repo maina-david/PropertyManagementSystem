@@ -1,0 +1,1 @@
+<?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/app/settings/partials/_settings_menu.blade.php ENDPATH**/ ?>

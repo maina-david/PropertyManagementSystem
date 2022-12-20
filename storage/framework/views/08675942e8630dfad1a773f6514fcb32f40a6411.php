@@ -1,0 +1,1 @@
+<?php /**PATH /var/www/propertywingu/cloud.propertywingu.com/resources/views/templates/temp06/print/theme.blade.php ENDPATH**/ ?>
