@@ -62,7 +62,7 @@ class WhereQuery extends Query {
         'OR', 'AND',
         'ALL', 'ANSWERED', 'BCC', 'BEFORE', 'BODY', 'CC', 'DELETED', 'FLAGGED', 'FROM', 'KEYWORD',
         'NEW', 'NOT', 'OLD', 'ON', 'RECENT', 'SEEN', 'SINCE', 'SUBJECT', 'TEXT', 'TO',
-        'UNANSWERED', 'UNDELETED', 'UNFLAGGED', 'UNKEYWORD', 'UNSEEN'
+        'UNANSWERED', 'UNDELETED', 'UNFLAGGED', 'UNKEYWORD', 'UNSEEN', 'UID'
     ];
 
     /**
@@ -458,5 +458,72 @@ class WhereQuery extends Query {
      */
     public function whereLanguage($country_code) {
         return $this->where("Content-Language $country_code");
+    }
+
+    /**
+     * Get message be it UID.
+     *
+     * @param int|string $uid
+     *
+     * @return WhereQuery
+     * @throws InvalidWhereQueryCriteriaException
+     */
+    public function whereUid($uid)
+    {
+        return $this->where('UID', $uid);
+    }
+
+    /**
+     * Get messages by their UIDs.
+     *
+     * @param array<int, int> $uids
+     *
+     * @return WhereQuery
+     * @throws InvalidWhereQueryCriteriaException
+     */
+    public function whereUidIn($uids)
+    {
+        $uids = implode(',', $uids);
+        return $this->where('UID', $uids);
+    }
+
+    /**
+     * Apply the callback if the given "value" is truthy.
+     * copied from @url https://github.com/laravel/framework/blob/8.x/src/Illuminate/Support/Traits/Conditionable.php
+     *
+     * @param mixed  $value
+     * @param callable  $callback
+     * @param callable|null  $default
+
+     * @return $this|mixed
+     */
+    public function when($value, $callback, $default = null) {
+        if ($value) {
+            return $callback($this, $value) ?: $this;
+        } elseif ($default) {
+            return $default($this, $value) ?: $this;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Apply the callback if the given "value" is falsy.
+     * copied from @url https://github.com/laravel/framework/blob/8.x/src/Illuminate/Support/Traits/Conditionable.php
+     *
+     * @param mixed  $value
+     * @param callable  $callback
+     * @param callable|null  $default
+
+     * @return $this|mixed
+     */
+    public function unless($value, $callback, $default = null) {
+        if (! $value) {
+            return $callback($this, $value) ?: $this;
+        } elseif ($default) {
+            return $default($this, $value) ?: $this;
+        }
+
+        return $this;
     }
 }

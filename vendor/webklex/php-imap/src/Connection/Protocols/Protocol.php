@@ -183,7 +183,6 @@ abstract class Protocol implements ProtocolInterface {
      *
      * @return resource|boolean The socket created.
      * @throws ConnectionFailedException
-     * @throws \ErrorException
      */
     protected function createStream($transport, $host, $port, $timeout) {
         $socket = "$transport://$host:$port";
@@ -194,7 +193,7 @@ abstract class Protocol implements ProtocolInterface {
         stream_set_timeout($stream, $timeout);
 
         if (!$stream) {
-            throw new ConnectionFailedException("Failed to connect to host", 0, $error);
+            throw new ConnectionFailedException($errstr, $errno);
         }
 
         if (false === stream_set_timeout($stream, $timeout)) {

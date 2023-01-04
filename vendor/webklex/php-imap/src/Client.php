@@ -220,10 +220,8 @@ class Client {
     protected function setEventsFromConfig($config) {
         $this->events = ClientManager::get("events");
         if(isset($config['events'])){
-            if(isset($config['events'])) {
-                foreach($config['events'] as $section => $events) {
-                    $this->events[$section] = array_merge($this->events[$section], $events);
-                }
+            foreach($config['events'] as $section => $events) {
+                $this->events[$section] = array_merge($this->events[$section], $events);
             }
         }
     }
@@ -253,13 +251,13 @@ class Client {
             }
             if(isset($config['masks']['attachment'])) {
                 if(class_exists($config['masks']['attachment'])) {
-                    $this->default_message_mask = $config['masks']['attachment'];
+                    $this->default_attachment_mask = $config['masks']['attachment'];
                 }else{
                     throw new MaskNotFoundException("Unknown mask provided: ".$config['masks']['attachment']);
                 }
             }else{
                 if(class_exists($default_config['attachment'])) {
-                    $this->default_message_mask = $default_config['attachment'];
+                    $this->default_attachment_mask = $default_config['attachment'];
                 }else{
                     throw new MaskNotFoundException("Unknown mask provided: ".$default_config['attachment']);
                 }
@@ -272,7 +270,7 @@ class Client {
             }
 
             if(class_exists($default_config['attachment'])) {
-                $this->default_message_mask = $default_config['attachment'];
+                $this->default_attachment_mask = $default_config['attachment'];
             }else{
                 throw new MaskNotFoundException("Unknown mask provided: ".$default_config['attachment']);
             }
@@ -333,7 +331,7 @@ class Client {
         $this->disconnect();
         $protocol = strtolower($this->protocol);
 
-        if ($protocol == "imap") {
+        if (in_array($protocol, ['imap', 'imap4', 'imap4rev1'])) {
             $this->connection = new ImapProtocol($this->validate_cert, $this->encryption);
             $this->connection->setConnectionTimeout($this->timeout);
             $this->connection->setProxy($this->proxy);
@@ -374,7 +372,7 @@ class Client {
             } elseif (!$this->connection->login($this->username, $this->password)) {
                 throw new AuthFailedException();
             }
-        } catch (Exception $e) {
+        } catch (AuthFailedException $e) {
             throw new ConnectionFailedException("connection setup failed", 0, $e);
         }
     }

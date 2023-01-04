@@ -254,9 +254,10 @@ class ImapProtocol extends Protocol {
     public function readResponse($tag, $dontParse = false) {
         $lines = [];
         $tokens = null; // define $tokens variable before first use
-        while (!$this->readLine($tokens, $tag, $dontParse)) {
+        do {
+            $readAll = $this->readLine($tokens, $tag, $dontParse);
             $lines[] = $tokens;
-        }
+        } while (!$readAll);
 
         if ($dontParse) {
             // First two chars are still needed for the response code
@@ -385,7 +386,7 @@ class ImapProtocol extends Protocol {
      * @param string $user username
      * @param string $token access token
      *
-     * @return bool|mixed
+     * @return bool
      * @throws AuthFailedException
      */
     public function authenticate($user, $token) {
@@ -825,6 +826,25 @@ class ImapProtocol extends Protocol {
     }
 
     /**
+     * Copy multiple messages to the target folder
+     *
+     * @param array<string> $messages List of message identifiers
+     * @param string $folder Destination folder
+     * @param bool $uid Set to true if you pass message unique identifiers instead of numbers
+     * @return array|bool Tokens if operation successful, false if an error occurred
+     *
+     * @throws RuntimeException
+     */
+    public function copyManyMessages($messages, $folder, $uid = false) {
+        $command = $uid ? 'UID COPY' : 'COPY';
+
+        $set = implode(',', $messages);
+        $tokens = [$set, $this->escapeString($folder)];
+
+        return $this->requestAndResponse($command, $tokens, true);
+    }
+
+    /**
      * Move a message set from current folder to an other folder
      * @param string $folder destination folder
      * @param $from
@@ -843,6 +863,25 @@ class ImapProtocol extends Protocol {
         $command = ($uid ? "UID " : "")."MOVE";
 
         return $this->requestAndResponse($command, [$set, $this->escapeString($folder)], true);
+    }
+
+    /**
+     * Move multiple messages to the target folder
+     *
+     * @param array<string> $messages List of message identifiers
+     * @param string $folder Destination folder
+     * @param bool $uid Set to true if you pass message unique identifiers instead of numbers
+     * @return array|bool Tokens if operation successful, false if an error occurred
+     *
+     * @throws RuntimeException
+     */
+    public function moveManyMessages($messages, $folder, $uid = false) {
+        $command = $uid ? 'UID MOVE' : 'MOVE';
+
+        $set = implode(',', $messages);
+        $tokens = [$set, $this->escapeString($folder)];
+
+        return $this->requestAndResponse($command, $tokens, true);
     }
 
     /**
@@ -1012,7 +1051,7 @@ class ImapProtocol extends Protocol {
                 $ids[] = $id;
             }
         }
-        $headers = $this->headers($ids, $rfc = "RFC822", $uid);
+        $headers = $this->headers($ids, "RFC822", $uid);
         foreach ($headers as $id => $raw_header) {
             $result[$id] = (new Header($raw_header, false))->getAttributes();
         }

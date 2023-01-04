@@ -16,15 +16,17 @@ class QueryCollector extends PDOCollector
     protected $renderSqlWithParams = false;
     protected $findSource = false;
     protected $middleware = [];
+    protected $durationBackground = true;
     protected $explainQuery = false;
     protected $explainTypes = ['SELECT']; // ['SELECT', 'INSERT', 'UPDATE', 'DELETE']; for MySQL 5.6.3+
     protected $showHints = false;
     protected $showCopyButton = false;
     protected $reflection = [];
     protected $backtraceExcludePaths = [
-        '/vendor/laravel/framework/src/Illuminate/Support/HigherOrderTapProxy',
+        '/vendor/laravel/framework/src/Illuminate/Support',
         '/vendor/laravel/framework/src/Illuminate/Database',
         '/vendor/laravel/framework/src/Illuminate/Events',
+        '/vendor/october/rain',
         '/vendor/barryvdh/laravel-debugbar',
     ];
 
@@ -90,6 +92,16 @@ class QueryCollector extends PDOCollector
     }
 
     /**
+     * Enable/disable the shaded duration background on queries
+     *
+     * @param  bool $enabled
+     */
+    public function setDurationBackground($enabled)
+    {
+        $this->durationBackground = $enabled;
+    }
+
+    /**
      * Enable/disable the EXPLAIN queries
      *
      * @param  bool $enabled
@@ -147,13 +159,17 @@ class QueryCollector extends PDOCollector
                 // Mimic bindValue and only quote non-integer and non-float data types
                 if (!is_int($binding) && !is_float($binding)) {
                     if ($pdo) {
-                        $binding = $pdo->quote($binding);
+                        try {
+                            $binding = $pdo->quote((string) $binding);
+                        } catch (\Exception $e) {
+                            $binding = $this->emulateQuote($binding);
+                        }
                     } else {
                         $binding = $this->emulateQuote($binding);
                     }
                 }
 
-                $query = preg_replace($regex, $binding, $query, 1);
+                $query = preg_replace($regex, addcslashes($binding, '$'), $query, 1);
             }
         }
 
@@ -174,6 +190,7 @@ class QueryCollector extends PDOCollector
             'source' => $source,
             'explain' => $explainResults,
             'connection' => $connection->getDatabaseName(),
+            'driver' => $connection->getConfig('driver'),
             'hints' => $this->showHints ? $hints : null,
             'show_copy' => $this->showCopyButton,
         ];
@@ -194,7 +211,7 @@ class QueryCollector extends PDOCollector
         $search = ["\\",  "\x00", "\n",  "\r",  "'",  '"', "\x1a"];
         $replace = ["\\\\","\\0","\\n", "\\r", "\'", '\"', "\\Z"];
 
-        return "'" . str_replace($search, $replace, $value) . "'";
+        return "'" . str_replace($search, $replace, (string) $value) . "'";
     }
 
     /**
@@ -442,6 +459,7 @@ class QueryCollector extends PDOCollector
             'source' => $source,
             'explain' => [],
             'connection' => $connection->getDatabaseName(),
+            'driver' => $connection->getConfig('driver'),
             'hints' => null,
             'show_copy' => false,
         ];
@@ -482,34 +500,49 @@ class QueryCollector extends PDOCollector
             ];
 
             // Add the results from the explain as new rows
-            foreach ($query['explain'] as $explain) {
-                $statements[] = [
-                    'sql' => " - EXPLAIN # {$explain->id}: `{$explain->table}` ({$explain->select_type})",
-                    'type' => 'explain',
-                    'params' => $explain,
-                    'row_count' => $explain->rows,
-                    'stmt_id' => $explain->id,
-                ];
+            if ($query['driver'] === 'pgsql') {
+                $explainer = trim(implode("\n", array_map(function ($explain) {
+                    return $explain->{'QUERY PLAN'};
+                }, $query['explain'])));
+
+                if ($explainer) {
+                    $statements[] = [
+                        'sql' => " - EXPLAIN: {$explainer}",
+                        'type' => 'explain',
+                    ];
+                }
+            } else {
+                foreach ($query['explain'] as $explain) {
+                    $statements[] = [
+                        'sql' => " - EXPLAIN # {$explain->id}: `{$explain->table}` ({$explain->select_type})",
+                        'type' => 'explain',
+                        'params' => $explain,
+                        'row_count' => $explain->rows,
+                        'stmt_id' => $explain->id,
+                    ];
+                }
             }
         }
 
-        if ($totalTime > 0) {
-            // For showing background measure on Queries tab
-            $start_percent = 0;
+        if ($this->durationBackground) {
+            if ($totalTime > 0) {
+                // For showing background measure on Queries tab
+                $start_percent = 0;
 
-            foreach ($statements as $i => $statement) {
-                if (! isset($statement['duration'])) {
-                    continue;
+                foreach ($statements as $i => $statement) {
+                    if (!isset($statement['duration'])) {
+                        continue;
+                    }
+
+                    $width_percent = $statement['duration'] / $totalTime * 100;
+
+                    $statements[$i] = array_merge($statement, [
+                        'start_percent' => round($start_percent, 3),
+                        'width_percent' => round($width_percent, 3),
+                    ]);
+
+                    $start_percent += $width_percent;
                 }
-
-                $width_percent = $statement['duration'] / $totalTime * 100;
-
-                $statements[$i] = array_merge($statement, [
-                    'start_percent' => round($start_percent, 3),
-                    'width_percent' => round($width_percent, 3),
-                ]);
-
-                $start_percent += $width_percent;
             }
         }
 

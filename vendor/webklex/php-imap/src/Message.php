@@ -432,7 +432,7 @@ class Message {
                 $flag = substr($flag, 1);
             }
             $flag_key = strtolower($flag);
-            if (in_array($flag_key, $this->available_flags) || $this->available_flags === null) {
+            if ($this->available_flags === null || in_array($flag_key, $this->available_flags)) {
                 $this->flags->put($flag_key, $flag);
             }
         }
@@ -681,9 +681,9 @@ class Message {
                 return base64_decode($string);
             case IMAP::MESSAGE_ENC_BASE64:
                 return base64_decode($string);
-            case IMAP::MESSAGE_ENC_8BIT:
             case IMAP::MESSAGE_ENC_QUOTED_PRINTABLE:
                 return quoted_printable_decode($string);
+            case IMAP::MESSAGE_ENC_8BIT:
             case IMAP::MESSAGE_ENC_7BIT:
             case IMAP::MESSAGE_ENC_OTHER:
             default:
@@ -1263,6 +1263,15 @@ class Message {
         }
 
         throw new MaskNotFoundException("Unknown mask provided: ".$mask);
+    }
+
+    /**
+     * Get the message path aka folder path
+     *
+     * @return string
+     */
+    public function getFolderPath(){
+        return $this->folder_path;
     }
 
     /**

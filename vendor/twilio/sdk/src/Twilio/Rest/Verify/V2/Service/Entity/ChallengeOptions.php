@@ -12,9 +12,6 @@ namespace Twilio\Rest\Verify\V2\Service\Entity;
 use Twilio\Options;
 use Twilio\Values;
 
-/**
- * PLEASE NOTE that this class contains beta products that are subject to change. Use them with caution.
- */
 abstract class ChallengeOptions {
     /**
      * @param \DateTime $expirationDate The date-time when this Challenge expires
@@ -34,18 +31,20 @@ abstract class ChallengeOptions {
     /**
      * @param string $factorSid Factor Sid.
      * @param string $status The Status of theChallenges to fetch
+     * @param string $order The sort order of the Challenges list
      * @return ReadChallengeOptions Options builder
      */
-    public static function read(string $factorSid = Values::NONE, string $status = Values::NONE): ReadChallengeOptions {
-        return new ReadChallengeOptions($factorSid, $status);
+    public static function read(string $factorSid = Values::NONE, string $status = Values::NONE, string $order = Values::NONE): ReadChallengeOptions {
+        return new ReadChallengeOptions($factorSid, $status, $order);
     }
 
     /**
      * @param string $authPayload Optional payload to verify the Challenge
+     * @param array $metadata Metadata of the challenge.
      * @return UpdateChallengeOptions Options builder
      */
-    public static function update(string $authPayload = Values::NONE): UpdateChallengeOptions {
-        return new UpdateChallengeOptions($authPayload);
+    public static function update(string $authPayload = Values::NONE, array $metadata = Values::ARRAY_NONE): UpdateChallengeOptions {
+        return new UpdateChallengeOptions($authPayload, $metadata);
     }
 }
 
@@ -141,10 +140,12 @@ class ReadChallengeOptions extends Options {
     /**
      * @param string $factorSid Factor Sid.
      * @param string $status The Status of theChallenges to fetch
+     * @param string $order The sort order of the Challenges list
      */
-    public function __construct(string $factorSid = Values::NONE, string $status = Values::NONE) {
+    public function __construct(string $factorSid = Values::NONE, string $status = Values::NONE, string $order = Values::NONE) {
         $this->options['factorSid'] = $factorSid;
         $this->options['status'] = $status;
+        $this->options['order'] = $order;
     }
 
     /**
@@ -170,6 +171,17 @@ class ReadChallengeOptions extends Options {
     }
 
     /**
+     * The desired sort order of the Challenges list. One of `asc` or `desc` for ascending and descending respectively. Defaults to `asc`.
+     *
+     * @param string $order The sort order of the Challenges list
+     * @return $this Fluent Builder
+     */
+    public function setOrder(string $order): self {
+        $this->options['order'] = $order;
+        return $this;
+    }
+
+    /**
      * Provide a friendly representation
      *
      * @return string Machine friendly representation
@@ -183,9 +195,11 @@ class ReadChallengeOptions extends Options {
 class UpdateChallengeOptions extends Options {
     /**
      * @param string $authPayload Optional payload to verify the Challenge
+     * @param array $metadata Metadata of the challenge.
      */
-    public function __construct(string $authPayload = Values::NONE) {
+    public function __construct(string $authPayload = Values::NONE, array $metadata = Values::ARRAY_NONE) {
         $this->options['authPayload'] = $authPayload;
+        $this->options['metadata'] = $metadata;
     }
 
     /**
@@ -196,6 +210,17 @@ class UpdateChallengeOptions extends Options {
      */
     public function setAuthPayload(string $authPayload): self {
         $this->options['authPayload'] = $authPayload;
+        return $this;
+    }
+
+    /**
+     * Custom metadata associated with the challenge. This is added by the Device/SDK directly to allow for the inclusion of device information. It must be a stringified JSON with only strings values eg. `{"os": "Android"}`. Can be up to 1024 characters in length.
+     *
+     * @param array $metadata Metadata of the challenge.
+     * @return $this Fluent Builder
+     */
+    public function setMetadata(array $metadata): self {
+        $this->options['metadata'] = $metadata;
         return $this;
     }
 
